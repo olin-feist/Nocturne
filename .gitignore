@@ -2,3 +2,5 @@
 .o
 /build/
 /bin/
+/.vscode/
+bldnotes.txt
