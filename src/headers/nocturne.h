@@ -13,6 +13,7 @@
 #include <linux/videodev2.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
@@ -20,3 +21,5 @@
 #include "tensorflow/lite/optional_debug_tools.h"
 
 using tfModelPtr = std::unique_ptr<tflite::FlatBufferModel>;
+
+void configure_camera();
