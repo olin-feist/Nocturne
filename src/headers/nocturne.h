@@ -14,6 +14,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <chrono>
+#include <thread>
 
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
@@ -21,5 +23,10 @@
 #include "tensorflow/lite/optional_debug_tools.h"
 
 using tfModelPtr = std::unique_ptr<tflite::FlatBufferModel>;
+constexpr uint32_t WIDTH = 1280;
+constexpr uint32_t HEIGHT = 1024;
 
 void configure_camera();
+void print_camera_info(const v4l2_capability& capability);
+int  open_device(const std::string& device);
+int  get_frame(const int& fd);
