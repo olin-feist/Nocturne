@@ -21,10 +21,10 @@
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
 #include "tensorflow/lite/optional_debug_tools.h"
-
-using tfModelPtr = std::unique_ptr<tflite::FlatBufferModel>;
 constexpr uint32_t WIDTH = 1280;
 constexpr uint32_t HEIGHT = 1024;
+
+using tfModelPtr = std::unique_ptr<tflite::FlatBufferModel>;
 
 void configure_camera();
 void print_camera_info(const v4l2_capability& capability);

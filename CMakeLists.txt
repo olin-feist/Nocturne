@@ -35,7 +35,7 @@ add_subdirectory(
   EXCLUDE_FROM_ALL
 )
 
-add_executable(nocturne src/nocturne.cpp)
+add_executable(nocturne src/nocturne.cpp src/capture.cpp src/utils.cpp)
 set_target_properties( nocturne PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 ) 
