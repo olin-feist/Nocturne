@@ -24,10 +24,9 @@ int main(){
   utils::save_jpeg("output.jpeg",buf,size);
 
   cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
-  cv::Mat frame_1= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
-  cv::Mat frame;
-  cv::resize(frame_1, frame, cv::Size(416, 416), 0, 0, cv::INTER_AREA);
-
+  cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
+  cv::resize(frame, frame, cv::Size(320, 320), 0, 0, cv::INTER_AREA);
+  cv::imwrite("some.jpg", frame);
 
   // Interpreter
   tflite::ops::builtin::BuiltinOpResolver resolver;
@@ -36,47 +35,43 @@ int main(){
   
   interpreter->AllocateTensors();
 
-  // Get the number of output tensors
-  int outputTensorCount = interpreter->outputs().size();
-  std::cout << "Number of output tensors: " << outputTensorCount << std::endl;
-
-  for (int i = 0; i < outputTensorCount; ++i) {
-      TfLiteTensor* outputTensor = interpreter->output_tensor(i);
-      std::cout << "Output tensor #" << i << ":" << std::endl;
-      std::cout << "  Name: " << outputTensor->name << std::endl;
-      std::cout << "  Type: " << outputTensor->type << std::endl;
-      std::cout << "  Dimensions: ";
-      for (int d = 0; d < outputTensor->dims->size; ++d) {
-          std::cout << outputTensor->dims->data[d] << " ";
-      }
-      std::cout << std::endl;
+  TfLiteTensor* intputtensor = interpreter->input_tensor(0);
+  std::cout << "  Name: " << intputtensor->name << std::endl;
+  std::cout << "  Type: " << intputtensor->type << std::endl;
+  std::cout << "  Dimensions: ";
+  for (int d = 0; d < intputtensor->dims->size; ++d) {
+      std::cout << intputtensor->dims->data[d] << " ";
   }
+  std::cout<<std::endl;
 
   float* input = interpreter->typed_input_tensor<float>(0);
+
   // Copy float image into input tensor
   cv::Mat fimage;
-  frame.convertTo(fimage, CV_32FC3);
+  frame.convertTo(fimage, CV_32FC3,1.0/128.0,-1);
   cv::cvtColor(fimage, fimage, cv::COLOR_BGR2RGB);
-  cv::imwrite("some.jpg", fimage);
-  memcpy(input, fimage.data,sizeof(float) * 416 * 416 * 3);
+
+  memcpy(input, fimage.data,sizeof(float) * 320 * 320 * 3);
 
   if (interpreter->Invoke() != kTfLiteOk) {
     std::cerr<<"Error invoking"<<std::endl;
     return 1;
   }
+
   float* output = interpreter->typed_output_tensor<float>(0);
-  // Create a CV_32FC3 OpenCV Mat from the output tensor data
-  cv::Mat output_image(416, 416, CV_32FC1, output);
-
-  // Convert the output image to the range [0, 255]
-  output_image *= 255.0;
-
-  // Convert the CV_32FC3 image to CV_8UC3 (unsigned char)
-  output_image.convertTo(output_image, CV_8UC1);
-
-  // Save the image to JPEG file
-  cv::imwrite("imgOut.jpg", output_image);
-  //cv::imwrite("imgOut.jpeg",  cv::Mat(416, 416, CV_32FC3, (void*)output));
+  float conf=-1.0;
+  float x=0;
+  float y=0;
+  for(int i =0;i<6300*85;i+=85){
+    if(conf<output[i+4]){
+      conf=output[i+4];
+      x=output[i]-output[i+2]/2;
+      y=output[i+1]-output[i+3]/2;
+    }
+  }
+  std::cout<<"Conf: "<<conf<<std::endl;
+  std::cout<<"X: "<<x<<std::endl;
+  std::cout<<"Y: "<<y<<std::endl;
 
   free(buf);
   return 0;

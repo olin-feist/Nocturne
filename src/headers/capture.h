@@ -2,8 +2,8 @@
 
 namespace nocturne {
     class Capture{
-        const uint32_t WIDTH  = 740;
-        const uint32_t HEIGHT = 416;
+        const uint32_t WIDTH  = 1920;
+        const uint32_t HEIGHT = 1080;
         int fd;
         char* buffer{NULL};
         u_int32_t buffer_size{0};
