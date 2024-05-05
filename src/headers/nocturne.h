@@ -21,8 +21,8 @@
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
 #include "tensorflow/lite/optional_debug_tools.h"
-constexpr uint32_t WIDTH = 1280;
-constexpr uint32_t HEIGHT = 1024;
+
+#include <opencv2/opencv.hpp>
 
 using tfModelPtr = std::unique_ptr<tflite::FlatBufferModel>;
 

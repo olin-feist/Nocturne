@@ -28,17 +28,18 @@ if(NOT TENSORFLOW_SOURCE_DIR)
     ABSOLUTE
   )
 endif()
-
 add_subdirectory(
   "${TENSORFLOW_SOURCE_DIR}/tensorflow/lite"
   "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-lite"
   EXCLUDE_FROM_ALL
 )
+set(OpenCV_DIR $ENV{HOME}/Documents/opencv_build)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
 
 add_executable(nocturne src/nocturne.cpp src/capture.cpp src/utils.cpp)
 set_target_properties( nocturne PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 ) 
 
-target_include_directories(nocturne PRIVATE "src/")
-target_link_libraries(nocturne PRIVATE tensorflow-lite)
+target_include_directories(nocturne PRIVATE "src/" ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(nocturne PRIVATE tensorflow-lite ${OpenCV_LIBS})

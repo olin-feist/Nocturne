@@ -8,14 +8,6 @@
                   Functions
 -------------------------------------------*/
 
-void print_camera_info(const v4l2_capability& capability){
-  std::cout<<"Driver: "<<capability.driver<<std::endl;
-  std::cout<<"Card: "<<capability.card<<std::endl;
-  std::cout<<"Bus info: "<<capability.bus_info<<std::endl;
-  std::cout<<"Version: "<<capability.version<<std::endl;
-  std::cout<<"Capabilities: "<<capability.capabilities<<std::endl;
-  std::cout<<"Device Caps: "<<capability.device_caps<<std::endl;
-}
 
 int main(){
   // Init Model
@@ -25,16 +17,14 @@ int main(){
       return 1;
   }
 
-  nocturne::Capture cam1("/dev/video1");
+  nocturne::Capture cam1("/dev/video0");
   char* buf=0;
   u_int32_t size;
   cam1.get_frame(&buf,size);
-  std::ofstream outFile;
-  outFile.open("output.jpeg", std::ios::binary | std::ios::trunc);
-  outFile.write(buf, size);
-  outFile.close();
-  
-  //free(buf);
+  std::cout<<std::hex<<(int)buf[0]<<std::hex<<(int)buf[1]<<std::hex<<(int)buf[2]<<std::hex<<(int)buf[3]<<std::endl;
+
+  cv::Mat rawData(1,sizeof(buf),CV_8SC1,(void*)buf);
+  cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_COLOR);
 
 
   // Interpreter
@@ -42,14 +32,15 @@ int main(){
   std::unique_ptr<tflite::Interpreter> interpreter;
   tflite::InterpreterBuilder(*model, resolver)(&interpreter);
 
-  
+  // Get input tensor details
   interpreter->AllocateTensors();
-
-  float* input = interpreter->typed_input_tensor<float>(0);
-  
+  char* input = interpreter->typed_input_tensor<char>(0);
+  //memcpy(input, buf, size);
   interpreter->Invoke();
 
   float* output = interpreter->typed_output_tensor<float>(0);
 
+  utils::save_jpeg("output.jpeg",buf,size);
+  free(buf);
   return 0;
 }
