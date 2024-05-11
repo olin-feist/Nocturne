@@ -34,7 +34,7 @@ add_subdirectory(
   EXCLUDE_FROM_ALL
 )
 set(OpenCV_DIR $ENV{HOME}/Documents/opencv_build)
-find_package(OpenCV REQUIRED COMPONENTS core imgcodecs)
+find_package(OpenCV REQUIRED COMPONENTS core imgcodecs dnn)
 
 add_executable(nocturne src/nocturne.cpp src/capture.cpp src/utils.cpp)
 set_target_properties( nocturne PROPERTIES 

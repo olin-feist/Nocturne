@@ -8,6 +8,75 @@
                   Functions
 -------------------------------------------*/
 
+BoundingBox::BoundingBox(u_int32_t x_,u_int32_t y_,u_int32_t width_,u_int32_t height_,u_int32_t id_,float conf_){
+  x=x_;
+  y=y_;
+  width=width_;
+  height=height_;
+  classId=id_;
+  conf=conf_;
+}
+
+void BoundingBox::print(){
+  std::cout<<"X:\t "<<x<<std::endl;
+  std::cout<<"Y:\t "<<y<<std::endl;
+  std::cout<<"Width:\t "<<width<<std::endl;
+  std::cout<<"Height:\t "<<height<<std::endl;
+  std::cout<<"Conf:\t "<<conf<<std::endl;
+  std::cout<<"Class ID:\t "<<classId<<std::endl;
+}
+
+
+std::vector<BoundingBox> get_boxes(u_int32_t k,float* out,int canidate_boxes){
+    std::vector<BoundingBox> boxes;
+
+    std::vector<int> clIds;
+    std::vector<float> conf;
+    std::vector<cv::Rect> rect;
+
+    float objConf;
+    u_int32_t x,y,width,height,classId;
+    for(int i=0;i<canidate_boxes*85;i+=85){
+      // Box
+      objConf = out[i+4];
+      if(objConf<0.10)
+        continue;
+      
+      width   = out[i + 2]*320;
+      height  = out[i + 3]*320;
+      x = (out[i] * 320 )-width /2;
+      y = (out[i + 1] * 320)-height /2;
+      //std::cout<<width<<", "<<height<<", "<<x<<", "<<y<<"\n";
+      // Class
+      float max=-1.0;
+      for(int j=i+5;j<i+85;j++){
+          if(out[j]>max){
+            max=out[j];
+            classId=(j-4)-i;
+          }
+      }
+      max*=objConf;
+      clIds.push_back(classId);
+      conf.push_back(max);
+      rect.emplace_back(x,y,width,height);
+    }
+
+    std::vector<int> idx;
+    cv::dnn::NMSBoxes(rect, conf, 0.10, 0.10, idx);
+    boxes.reserve(idx.size());
+    for (int i = 0; i < idx.size(); i++){
+        BoundingBox box;
+        box.x = rect[idx[i]].x;
+        box.y = rect[idx[i]].y;
+        box.width = rect[idx[i]].width;
+        box.height = rect[idx[i]].height;
+        box.conf = conf[idx[i]];
+        box.classId = clIds[idx[i]];
+
+        boxes.emplace_back(box);
+    }
+    return boxes;
+}
 
 int main(){
   // Init Model
@@ -26,7 +95,7 @@ int main(){
   cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
   cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
   cv::resize(frame, frame, cv::Size(320, 320), 0, 0, cv::INTER_AREA);
-  cv::imwrite("some.jpg", frame);
+
 
   // Interpreter
   tflite::ops::builtin::BuiltinOpResolver resolver;
@@ -59,20 +128,13 @@ int main(){
   }
 
   float* output = interpreter->typed_output_tensor<float>(0);
-  float conf=-1.0;
-  float x=0;
-  float y=0;
-  for(int i =0;i<6300*85;i+=85){
-    if(conf<output[i+4]){
-      conf=output[i+4];
-      x=output[i]-output[i+2]/2;
-      y=output[i+1]-output[i+3]/2;
-    }
+  auto bb = get_boxes(5,output,6300);
+  for(auto b : bb){
+    b.print();
+    cv::rectangle(frame, cv::Rect(b.x, b.y, b.width, b.height), cv::Scalar(0, 255, 0), 2); // Green color, thickness = 2
   }
-  std::cout<<"Conf: "<<conf<<std::endl;
-  std::cout<<"X: "<<x<<std::endl;
-  std::cout<<"Y: "<<y<<std::endl;
-
+  
+  cv::imwrite("some.jpg", frame);
   free(buf);
   return 0;
 }

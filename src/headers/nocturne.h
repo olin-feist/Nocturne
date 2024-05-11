@@ -30,3 +30,18 @@ void configure_camera();
 void print_camera_info(const v4l2_capability& capability);
 int  open_device(const std::string& device);
 int  get_frame(const int& fd);
+
+class BoundingBox {
+public:
+    u_int32_t x;
+    u_int32_t y;
+    u_int32_t width;
+    u_int32_t height;
+    u_int32_t classId;  
+    float conf;
+
+    BoundingBox(u_int32_t,u_int32_t,u_int32_t,u_int32_t,u_int32_t,float);
+    BoundingBox() = default;
+
+    void print();
+};
