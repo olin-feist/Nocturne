@@ -33,10 +33,10 @@ int  get_frame(const int& fd);
 
 class BoundingBox {
 public:
-    u_int32_t x;
-    u_int32_t y;
-    u_int32_t width;
-    u_int32_t height;
+    float x;
+    float y;
+    float width;
+    float height;
     u_int32_t classId;  
     float conf;
 

@@ -4,6 +4,8 @@
 #include <fstream>
 #include <linux/videodev2.h>
 
+#include "headers/utils.h"
+
 namespace utils{
     int open_device(const std::string& device){
         int fd =  open(device.c_str(), O_RDWR);
@@ -31,4 +33,16 @@ namespace utils{
         std::cout<<"Capabilities: "<<capability.capabilities<<std::endl;
         std::cout<<"Device Caps: "<<capability.device_caps<<std::endl;
     }  
+
+    std::vector<std::string> get_class_names(const std::string& path){
+        std::ifstream in(path);
+        std::string line;
+        std::vector<std::string> v;
+        
+        while(std::getline(in,line)){
+            v.push_back(line);
+        }
+
+        return v;
+    }
 }

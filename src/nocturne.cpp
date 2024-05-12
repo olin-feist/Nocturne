@@ -27,7 +27,7 @@ void BoundingBox::print(){
 }
 
 
-std::vector<BoundingBox> get_boxes(u_int32_t k,float* out,int canidate_boxes){
+std::vector<BoundingBox> get_boxes(u_int32_t k_,float* out,int canidate_boxes){
     std::vector<BoundingBox> boxes;
 
     std::vector<int> clIds;
@@ -39,17 +39,17 @@ std::vector<BoundingBox> get_boxes(u_int32_t k,float* out,int canidate_boxes){
     for(int i=0;i<canidate_boxes*85;i+=85){
       // Box
       objConf = out[i+4];
-      if(objConf<0.10)
+      if(objConf<0.3)
         continue;
       
       width   = out[i + 2]*320;
       height  = out[i + 3]*320;
       x = (out[i] * 320 )-width /2;
       y = (out[i + 1] * 320)-height /2;
-      //std::cout<<width<<", "<<height<<", "<<x<<", "<<y<<"\n";
+
       // Class
       float max=-1.0;
-      for(int j=i+5;j<i+85;j++){
+      for(int j=i+5;j<i+80;j++){
           if(out[j]>max){
             max=out[j];
             classId=(j-4)-i;
@@ -57,12 +57,12 @@ std::vector<BoundingBox> get_boxes(u_int32_t k,float* out,int canidate_boxes){
       }
       max*=objConf;
       clIds.push_back(classId);
-      conf.push_back(max);
+      conf.push_back(objConf);
       rect.emplace_back(x,y,width,height);
     }
 
     std::vector<int> idx;
-    cv::dnn::NMSBoxes(rect, conf, 0.10, 0.10, idx);
+    cv::dnn::NMSBoxes(rect, conf, 0.3, 0.5, idx);
     boxes.reserve(idx.size());
     for (int i = 0; i < idx.size(); i++){
         BoundingBox box;
@@ -85,17 +85,11 @@ int main(){
       printf("Failed to Load model\n");
       return 1;
   }
+  std::vector<std::string> class_names = utils::get_class_names("data/coco_classes.txt");
 
-  nocturne::Capture cam1("/dev/video0");
+  nocturne::Capture cam1("/dev/video2");
   char* buf=0;
   u_int32_t size;
-  cam1.get_frame(&buf,size);
-  utils::save_jpeg("output.jpeg",buf,size);
-
-  cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
-  cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
-  cv::resize(frame, frame, cv::Size(320, 320), 0, 0, cv::INTER_AREA);
-
 
   // Interpreter
   tflite::ops::builtin::BuiltinOpResolver resolver;
@@ -104,7 +98,18 @@ int main(){
   
   interpreter->AllocateTensors();
 
-  TfLiteTensor* intputtensor = interpreter->input_tensor(0);
+  while(true){
+  cam1.get_frame(&buf,size);
+  utils::save_jpeg("output.jpeg",buf,size);
+
+  cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
+  cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
+  cv::resize(frame, frame, cv::Size(320, 320), 0, 0, cv::INTER_AREA);
+
+
+
+
+  /*TfLiteTensor* intputtensor = interpreter->input_tensor(0);
   std::cout << "  Name: " << intputtensor->name << std::endl;
   std::cout << "  Type: " << intputtensor->type << std::endl;
   std::cout << "  Dimensions: ";
@@ -112,7 +117,7 @@ int main(){
       std::cout << intputtensor->dims->data[d] << " ";
   }
   std::cout<<std::endl;
-
+  */
   float* input = interpreter->typed_input_tensor<float>(0);
 
   // Copy float image into input tensor
@@ -130,11 +135,16 @@ int main(){
   float* output = interpreter->typed_output_tensor<float>(0);
   auto bb = get_boxes(5,output,6300);
   for(auto b : bb){
-    b.print();
-    cv::rectangle(frame, cv::Rect(b.x, b.y, b.width, b.height), cv::Scalar(0, 255, 0), 2); // Green color, thickness = 2
+    //b.print();
+    cv::Scalar color =  cv::Scalar(0, 255, 0);
+    cv::rectangle(frame, cv::Rect(b.x, b.y, b.width, b.height), color, 1);
+    std::string out_str = class_names[b.classId] + " "+std::to_string(b.conf);
+    cv::putText(frame, out_str,cv::Point(b.x, b.y+10),cv::FONT_HERSHEY_DUPLEX,.25,color, 1);
   }
+  //cv::resize(frame, frame, cv::Size(1920, 1080), 0, 0, cv::INTER_AREA);
   
   cv::imwrite("some.jpg", frame);
+  }
   free(buf);
   return 0;
 }
