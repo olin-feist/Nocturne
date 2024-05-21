@@ -24,8 +24,9 @@ namespace nocturne
         }
 
         buffer_size = bufferinfo.bytesused;
-        std::cout << "Buffer read: " << (double)bufferinfo.bytesused / 1024 << " KBytes of data" << std::endl;
+        //std::cout << "Buffer read: " << (double)bufferinfo.bytesused / 1024 << " KBytes of data" << std::endl;
         *buf = (char*) malloc(bufferinfo.bytesused*sizeof(char));
+        
         memcpy(*buf,buffer,bufferinfo.bytesused);
         size = buffer_size;
         
@@ -56,7 +57,6 @@ namespace nocturne
             std::cerr<<"Does not support streaming i/o"<<std::endl;
             return 1;
         }
-
         // Set format
         v4l2_format image_fmt;
         image_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
