@@ -11,6 +11,8 @@
 namespace nocturne
 {
     int Capture::get_frame(char** buf, u_int32_t& size){
+        if(fd == -1){return 1;};
+
         v4l2_buffer bufferinfo{0};
         bufferinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         bufferinfo.memory = V4L2_MEMORY_MMAP;
@@ -26,7 +28,6 @@ namespace nocturne
         buffer_size = bufferinfo.bytesused;
         //std::cout << "Buffer read: " << (double)bufferinfo.bytesused / 1024 << " KBytes of data" << std::endl;
         *buf = (char*) malloc(bufferinfo.bytesused*sizeof(char));
-        
         memcpy(*buf,buffer,bufferinfo.bytesused);
         size = buffer_size;
         
@@ -124,8 +125,17 @@ namespace nocturne
 
 
     }
-    
+    Capture& Capture::operator=(Capture&& other){
+        fd = other.fd;
+        buffer = other.buffer;
+        other.fd=-1;
+        other.buffer = nullptr;
+        return *this;
+    }
     Capture::~Capture(){
+        // Camera was never opened
+        if(fd == -1){return;};
+        
         v4l2_buffer bufferinfo{0};
         bufferinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         bufferinfo.memory = V4L2_MEMORY_MMAP;

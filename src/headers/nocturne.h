@@ -5,19 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 #include <iostream>
-#include <wchar.h>
-#include <fstream>
-#include <sys/ioctl.h>
 #include <linux/videodev2.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/mman.h>
-#include <chrono>
-#include <thread>
-
-#include <opencv2/opencv.hpp>
 
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
@@ -39,9 +30,10 @@ public:
     float width;
     float height;
     u_int32_t classId;  
-    float conf;
+    float obj_conf;
+    float class_conf;
 
-    BoundingBox(u_int32_t,u_int32_t,u_int32_t,u_int32_t,u_int32_t,float);
+    BoundingBox(u_int32_t,u_int32_t,u_int32_t,u_int32_t,u_int32_t,float,float);
     BoundingBox() = default;
 
     void print();
@@ -68,7 +60,8 @@ class ObjectDetection {
     std::vector<BoundingBox> get_boxes();
 public:
     ObjectDetection(const std::string&);
-    ObjectDetection() = default;
+    ObjectDetection();
+    ObjectDetection& operator=(ObjectDetection&&);
     ~ObjectDetection();
     std::vector<BoundingBox> detect();
 
