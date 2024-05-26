@@ -16,10 +16,23 @@
 -------------------------------------------*/
 
 volatile sig_atomic_t stop;
-
+int distance{0};
 void sigint_handle(int signum) {
         stop = 1;
 }
+
+void distance_thread(){
+    nocturne::UltraSonicSensor dist_sensor(0,1);
+    int dist{0};
+    while(!stop){
+        dist =dist_sensor.getDistance();
+        if(dist==-1){
+            utils::errno_exit("getDistance() failed");
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds{60});
+        distance=dist;
+    }
+};
 
 BoundingBox::BoundingBox(u_int32_t x_,u_int32_t y_,u_int32_t width_,u_int32_t height_,u_int32_t id_,float obj_conf_,float class_conf_){
     x=x_;
@@ -162,11 +175,10 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
 }
 
 int main(){
-    nocturne::UltraSonicSensor dist_sensor(0,1);
-    if(dist_sensor.start()){
-        utils::errno_exit("start fail");
+    std::thread dist_thread(distance_thread);
+    while(!stop){
+        std::cout<<distance<<std::endl;
     }
-
     /*signal(SIGINT, sigint_handle);
 
     ObjectDetection detector;
@@ -199,5 +211,6 @@ int main(){
 
     }
     */
+    dist_thread.join();
     return 0;
 }

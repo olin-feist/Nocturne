@@ -35,12 +35,13 @@ namespace nocturne{
         if (ioctl(fd, GPIO_V2_GET_LINE_IOCTL, &in) < 0) {
             throw std::runtime_error("Ioctl input pin Error: GPIO_V2_GET_LINE_IOCTL");
         }
+        echo_fd=in.fd;
     }
 
     int UltraSonicSensor::start(){
         struct gpio_v2_line_values high;
-        high.bits=_BITULL(trig_pin);
-        high.mask=_BITULL(trig_pin);
+        high.bits=_BITULL(0);
+        high.mask=_BITULL(0);
         if (ioctl(trig_fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &high) < 0) {
            std::cerr<<"Ioctl error when setting high: GPIO_V2_LINE_SET_VALUES_IOCTL"<<std::endl;
            return 1;
@@ -50,11 +51,42 @@ namespace nocturne{
 
         struct gpio_v2_line_values low;
         low.bits|=0;
-        low.mask|=_BITULL(trig_pin);
+        low.mask|=_BITULL(0);
         if (ioctl(trig_fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &low) < 0) {
            std::cerr<<"Ioctl error when setting low: GPIO_V2_LINE_SET_VALUES_IOCTL"<<std::endl;
            return 1;
         }
         return 0;
+    }
+
+    int UltraSonicSensor::getDistance(){
+        std::lock_guard<std::mutex> guard(sensor_lock);
+        if(start()){return -1;}
+        // Read the value of the GPIO line
+        struct gpio_v2_line_values values;
+        values.mask=_BITULL(0);
+        bool val {0};
+        
+        while(val==0){
+            values.bits=0;
+            if (ioctl(echo_fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &values) < 0) {
+                std::cerr << "Failed to read sensor GPIO value" << std::endl;
+                return -1;
+            }
+            val=values.bits&_BITULL(0);
+        }
+        auto start = std::chrono::high_resolution_clock::now();
+        while(val==1){
+            values.bits=0;
+            if (ioctl(echo_fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &values) < 0) {
+                std::cerr << "Failed to read sensor GPIO value" << std::endl;
+                return -1;
+            }
+            val=values.bits&_BITULL(0);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed_time_uS = std::chrono::duration<double, std::micro>(end-start).count();
+        elapsed_time_uS=(((elapsed_time_uS*SOUND_SPEED_uS)/2)*M_TO_CM)*CM_TO_IN;
+        return elapsed_time_uS;
     }
 }
