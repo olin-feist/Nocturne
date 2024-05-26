@@ -3,6 +3,7 @@
 -------------------------------------------*/
 #include "headers/nocturne.h"
 #include "headers/utils.h"
+#include "headers/sensor.h"
 
 #include <signal.h>
 #include <chrono>
@@ -10,7 +11,6 @@
 #include <chrono>
 #include <thread>
 #include <fstream>
-
 /*-------------------------------------------
                                     Functions
 -------------------------------------------*/
@@ -162,7 +162,12 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
 }
 
 int main(){
-    signal(SIGINT, sigint_handle);
+    nocturne::UltraSonicSensor dist_sensor(0,1);
+    if(dist_sensor.start()){
+        utils::errno_exit("start fail");
+    }
+
+    /*signal(SIGINT, sigint_handle);
 
     ObjectDetection detector;
     try{
@@ -193,6 +198,6 @@ int main(){
         std::cout<<"FPS: "<<1000/elapsed_time_ms<<std::endl;    
 
     }
-
+    */
     return 0;
 }
