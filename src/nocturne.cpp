@@ -4,6 +4,7 @@
 #include "headers/nocturne.h"
 #include "headers/utils.h"
 #include "headers/sensor.h"
+#include "headers/display.h"
 
 #include <signal.h>
 #include <chrono>
@@ -175,11 +176,14 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
 }
 
 int main(){
+    nocturne::SSD1306_Display disp;
+    std::cout<<disp.turn_off()<<std::endl;
+    /*
     std::thread dist_thread(distance_thread);
     while(!stop){
         std::cout<<distance<<std::endl;
     }
-    /*signal(SIGINT, sigint_handle);
+    signal(SIGINT, sigint_handle);
 
     ObjectDetection detector;
     try{
@@ -210,7 +214,7 @@ int main(){
         std::cout<<"FPS: "<<1000/elapsed_time_ms<<std::endl;    
 
     }
-    */
     dist_thread.join();
+    */
     return 0;
 }
