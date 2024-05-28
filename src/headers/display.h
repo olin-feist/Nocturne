@@ -1,9 +1,15 @@
 #include <cstdint>
+#include <string>
 
 namespace nocturne{
     namespace SSD1306{
+        //I2C ADDRESS
         constexpr uint8_t I2C_ADDR       {0x3c};
-        constexpr uint8_t CONTROL_BYTE   {0x00};
+
+        //CONTROL CODES
+        constexpr uint8_t CMD_STREAM     {0x00};
+        constexpr uint8_t CMD_SINGLE     {0x80};
+        constexpr uint8_t DATA_CONTROL   {0x40};
         constexpr uint8_t DISPLAY_OFF    {0xae};
         constexpr uint8_t DISPLAY_ON     {0xaf};
         constexpr uint8_t HORIZ_NORM     {0xa0};
@@ -34,8 +40,11 @@ namespace nocturne{
         constexpr uint8_t HORI_MODE      {0x00};
         constexpr uint8_t VERT_MODE      {0x01};
         constexpr uint8_t PAGE_MODE      {0x02};
-        constexpr uint8_t FONT_SMALL     {0x00};
-        constexpr uint8_t FONT_NORMAL    {0x01};
+
+        //BYTE VALUES
+        constexpr uint8_t  LINE_SIZE     {128};
+        constexpr uint8_t  COL_SIZE      {64};
+        constexpr uint16_t TOTAL_SIZE    {LINE_SIZE*(COL_SIZE/8)};
     }
 
     class  SSD1306_Display{
@@ -46,12 +55,13 @@ namespace nocturne{
         int recieve(uint8_t* data, uint16_t len);
 
         int configure();
-        
     public:
         SSD1306_Display();
+        ~SSD1306_Display();
         int turn_on();
         int turn_off();
-
+        void clear_screen();
+        int write_line(const std::string&&,const uint8_t&&);
     };
 
 }
