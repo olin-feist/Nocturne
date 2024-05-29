@@ -9,8 +9,8 @@
 #include <unistd.h>
 
 namespace nocturne{
-    SSD1306_Display::SSD1306_Display(){
-        fd = utils::open_device("/dev/i2c-4");
+    SSD1306_Display::SSD1306_Display(const std::string& i2c_str){
+        fd = utils::open_device(i2c_str);
         if(fd ==-1){
             throw std::runtime_error("Failed to open I2C driver");
         }
@@ -97,10 +97,17 @@ namespace nocturne{
         }
     }
 
+    void SSD1306_Display::clear_after_line(const int& line){
+        for(int i=line;i<SSD1306::COL_SIZE/8;i++){
+            write_line("",i);
+        }
+    }
+
+
     int SSD1306_Display::write_line(const std::string&& str,const uint8_t&& line){
         uint8_t header_size{7};
         size_t str_size = str.size()*8;
-        
+        if(str_size>SSD1306::LINE_SIZE)str_size=SSD1306::LINE_SIZE;
         int data_size{SSD1306::LINE_SIZE+header_size};
         uint8_t data[data_size]={0};
         data[0]=SSD1306::CMD_SINGLE;

@@ -56,11 +56,13 @@ namespace nocturne{
 
         int configure();
     public:
-        SSD1306_Display();
+        SSD1306_Display(const std::string&);
         ~SSD1306_Display();
         int turn_on();
         int turn_off();
         void clear_screen();
+        void clear_after_line(const int&);
+        
         int write_line(const std::string&&,const uint8_t&&);
     };
 

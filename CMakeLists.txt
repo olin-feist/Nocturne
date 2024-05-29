@@ -36,7 +36,7 @@ add_subdirectory(
 set(OpenCV_DIR $ENV{HOME}/Documents/opencv_build)
 find_package(OpenCV REQUIRED COMPONENTS core imgcodecs dnn)
 
-add_executable(nocturne src/nocturne.cpp src/capture.cpp src/utils.cpp src/sensor.cpp src/display.cpp)
+add_executable(nocturne src/nocturne.cpp src/capture.cpp src/utils.cpp src/sensor.cpp src/display.cpp src/detect.cpp)
 set_target_properties( nocturne PROPERTIES 
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 ) 
