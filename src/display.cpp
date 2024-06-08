@@ -103,7 +103,6 @@ namespace nocturne{
         }
     }
 
-
     int SSD1306_Display::write_line(const std::string&& str,const uint8_t&& line){
         uint8_t header_size{7};
         size_t str_size = str.size()*8;

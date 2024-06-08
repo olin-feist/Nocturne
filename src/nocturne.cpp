@@ -37,7 +37,7 @@ void detection_thread(){
     nocturne::ObjectDetection detector;
     
     try{
-        detector=nocturne::ObjectDetection("1.tflite");
+        detector=nocturne::ObjectDetection("1.tflite","/dev/video1");
     } catch (std::exception& e){
         std::cerr<<"Exception "<<typeid(e).name()<<" Thrown when construction ObjectDetection, what(): "<<e.what()<<std::endl;
         stop=1;

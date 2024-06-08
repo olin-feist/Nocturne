@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <memory>
+
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
@@ -45,7 +46,7 @@ namespace nocturne{
 
         std::vector<BoundingBox> get_boxes();
     public:
-        ObjectDetection(const std::string&);
+        ObjectDetection(const std::string&,const std::string&);
         ObjectDetection();
         ObjectDetection& operator=(ObjectDetection&&);
         ~ObjectDetection();

@@ -4,7 +4,7 @@
 namespace nocturne{
     namespace SSD1306{
         //I2C ADDRESS
-        constexpr uint8_t I2C_ADDR       {0x3c};
+        constexpr uint8_t I2C_ADDR       {0x3C};
 
         //CONTROL CODES
         constexpr uint8_t CMD_STREAM     {0x00};
@@ -49,7 +49,7 @@ namespace nocturne{
 
     class  SSD1306_Display{
         int fd;
-        int addr{0x3C};
+        int addr{SSD1306::I2C_ADDR};
         uint32_t CONFIG_BUFFER_SIZE{28};
         int send(uint8_t*, uint16_t);
         int recieve(uint8_t* data, uint16_t len);

@@ -29,11 +29,11 @@ void BoundingBox::print(){
 
 ObjectDetection::ObjectDetection(){}
 
-ObjectDetection::ObjectDetection(const std::string& path):
-cam1("/dev/video0")
+ObjectDetection::ObjectDetection(const std::string& model_path,const std::string& cam_device):
+cam1(cam_device)
 {
     // Init Model
-    model = tflite::FlatBufferModel::BuildFromFile(path.c_str());
+    model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
     if(!model){
             throw std::runtime_error("Failed to Load model");
     }
@@ -44,7 +44,6 @@ cam1("/dev/video0")
         throw std::runtime_error("Failed to build Interpreter");
     }
 
-    interpreter->AllocateTensors();
     TfLiteTensor* intputtensor = interpreter->input_tensor(0);
     model_image_width = intputtensor->dims->data[1];
     model_image_height = intputtensor->dims->data[2];
