@@ -46,7 +46,7 @@ namespace nocturne{
 
         std::vector<BoundingBox> get_boxes();
     public:
-        ObjectDetection(const std::string&,const std::string&);
+        ObjectDetection(const std::string&);
         ObjectDetection();
         ObjectDetection& operator=(ObjectDetection&&);
         ~ObjectDetection();

@@ -146,9 +146,9 @@ namespace nocturne
         }
 
         // Unmap
-        if(buffer != NULL){
+        if(buffer != NULL && buffer_size!=0){
             if (-1 == munmap(buffer, buffer_size)){
-                utils::errno_exit("munmap");
+                utils::errno_exit("Capture Deconstruct failed: munmap");
             }
         }
 

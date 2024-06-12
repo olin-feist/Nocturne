@@ -28,10 +28,12 @@ namespace nocturne{
         }
         if(configure()!=CONFIG_BUFFER_SIZE){
             throw std::runtime_error("SSD1306 configuratio failed");
-        }        
+        }
+        clear_screen();       
     }
 
     SSD1306_Display::~SSD1306_Display(){
+        clear_screen();
         turn_off();
         close(fd);
     }

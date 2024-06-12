@@ -16,7 +16,7 @@ std::atomic<bool> stop;
 
 nocturne::SSD1306_Display disp{"/dev/i2c-4"};
 
-void sigint_handle(int signum) {
+void sig_handle(int signum) {
         stop = 1;
 }
 
@@ -37,20 +37,20 @@ void detection_thread(){
     nocturne::ObjectDetection detector;
     
     try{
-        detector=nocturne::ObjectDetection("1.tflite","/dev/video1");
+        detector=nocturne::ObjectDetection("/root/1.tflite");
     } catch (std::exception& e){
         std::cerr<<"Exception "<<typeid(e).name()<<" Thrown when construction ObjectDetection, what(): "<<e.what()<<std::endl;
         stop=1;
         return;
     }
 
-    std::vector<std::string> class_names = utils::get_class_names("data/coco_classes.txt");
+    std::vector<std::string> class_names = utils::get_class_names("/root/data/coco_classes.txt");
     std::vector<nocturne::BoundingBox> objs;
     double elapsed_time_ms;
     int i;
     while(!stop){
         auto start = std::chrono::high_resolution_clock::now();
-        
+
         objs=detector.detect();
         i=2;
         for(auto b : objs){
@@ -65,7 +65,9 @@ void detection_thread(){
 
 int main(){
   
-    signal(SIGINT, sigint_handle);
+    signal(SIGINT,  sig_handle);
+    signal(SIGKILL, sig_handle);
+    signal(SIGTERM, sig_handle);
 
     std::thread detc_thread(detection_thread);
     std::thread dist_thread(distance_thread);
