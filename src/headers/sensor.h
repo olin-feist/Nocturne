@@ -6,6 +6,10 @@ namespace nocturne{
     const uint32_t M_TO_CM{100};
     
     class UltraSonicSensor{
+        float MAX_RANGE{157.48};
+        float MIN_RANGE{1};
+        float ERROR_THRESH{100};
+
         std::mutex sensor_lock;
         float SOUND_SPEED_uS{350*MPuS};
         int fd;

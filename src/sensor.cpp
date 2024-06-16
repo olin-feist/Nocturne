@@ -87,6 +87,15 @@ namespace nocturne{
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed_time_uS = std::chrono::duration<double, std::micro>(end-start).count();
         elapsed_time_uS=(((elapsed_time_uS*SOUND_SPEED_uS)/2)*M_TO_CM)*CM_TO_IN;
+
+        if(elapsed_time_uS>MAX_RANGE+ERROR_THRESH){
+            return 0;
+        } else if(elapsed_time_uS>MAX_RANGE){
+            return MAX_RANGE;
+        }else if(elapsed_time_uS<MIN_RANGE){
+            return MIN_RANGE;
+        }
+
         return elapsed_time_uS;
     }
 }

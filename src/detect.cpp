@@ -1,4 +1,6 @@
 #include "headers/detect.h"
+#include "headers/utils.h"
+
 
 #include <iostream>
 #include <vector>
@@ -89,12 +91,11 @@ std::vector<BoundingBox> ObjectDetection::detect(){
     cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
     cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
     cv::resize(frame, frame, cv::Size(model_image_width, model_image_height), 0, 0, cv::INTER_AREA);
-
     input_tensor = interpreter->typed_input_tensor<float>(0);
 
     // Copy float image into input tensor
     cv::Mat fimage;
-    frame.convertTo(fimage, CV_32FC3,1.0/128.0,-1);
+    frame.convertTo(fimage, CV_32FC3,1.0/255.0);
     cv::cvtColor(fimage, fimage, cv::COLOR_BGR2RGB);
     memcpy(input_tensor, fimage.data,sizeof(float) * model_image_width * model_image_height * model_image_chnls);
     if (interpreter->Invoke() != kTfLiteOk) {
@@ -123,9 +124,9 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
             
             width     = output_tensor[i + 2]*model_image_width;
             height    = output_tensor[i + 3]*model_image_height;
-            if(width/model_image_width>=0.95&&height/model_image_height>=0){
+            /*if(width/model_image_width>=0.95&&height/model_image_height>=0){
                 continue;
-            }
+            }*/
             x = (output_tensor[i] * model_image_width )-width /2;
             y = (output_tensor[i + 1] * model_image_height)-height /2;
 
@@ -144,7 +145,7 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
         }
 
         std::vector<int> idx;
-        cv::dnn::NMSBoxes(rect, obj_conf, 0.3, 0.5, idx);
+        cv::dnn::NMSBoxes(rect, obj_conf, 0.3, 0.5, idx,1.0,5);
         boxes.reserve(idx.size());
         for (int i = 0; i < idx.size(); i++){
                 BoundingBox box;

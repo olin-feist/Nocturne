@@ -54,7 +54,7 @@ void detection_thread(){
         objs=detector.detect();
         i=2;
         for(auto b : objs){
-            disp.write_line("Obj:"+class_names[b.classId],i++);
+            disp.write_line(""+class_names[b.classId],i++);
         }
         disp.clear_after_line(i);
         auto end = std::chrono::high_resolution_clock::now();
