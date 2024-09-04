@@ -1,6 +1,9 @@
 #include <cstdint>
 #include <memory>
 
+#define CL_HPP_TARGET_OPENCL_VERSION 300
+#include <CL/opencl.hpp>
+
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
@@ -44,12 +47,22 @@ namespace nocturne{
         char* buf{NULL};
         u_int32_t size{0};
 
+        cl::Program program;
+        cl::Buffer buffer_input;
+        cl::Buffer buffer_output;
+        cl::CommandQueue queue;
+
         std::vector<BoundingBox> get_boxes();
+        
+        void setup_gpu_compute();
+        void gpu_resize_image();
+
     public:
         ObjectDetection(const std::string&);
         ObjectDetection();
         ObjectDetection& operator=(ObjectDetection&&);
         ~ObjectDetection();
+
         std::vector<BoundingBox> detect();
 
         const u_int32_t& getModelWidth()  const {return  model_image_width;}

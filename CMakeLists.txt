@@ -41,6 +41,9 @@ add_subdirectory(
   EXCLUDE_FROM_ALL
 )
 
+# Open CL
+set(OpenCL_INCLUDE_DIRS $ENV{HOME}/Documents/mesa/include)
+
 # Open CV
 set(OpenCV_DIR $ENV{HOME}/Documents/opencv_build)
 find_package(OpenCV REQUIRED COMPONENTS core imgcodecs dnn)
@@ -51,5 +54,5 @@ set_target_properties( nocturne PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 ) 
 
-target_include_directories(nocturne PRIVATE "src/" ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(nocturne PRIVATE tensorflow-lite ${OpenCV_LIBS})
+target_include_directories(nocturne PRIVATE "src/" ${OpenCV_INCLUDE_DIRS} ${OpenCL_INCLUDE_DIRS})
+target_link_libraries(nocturne PRIVATE tensorflow-lite ${OpenCV_LIBS} OpenCL)

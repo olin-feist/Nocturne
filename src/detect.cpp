@@ -3,6 +3,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 #include <opencv2/opencv.hpp>
@@ -165,4 +166,60 @@ std::vector<BoundingBox> ObjectDetection::get_boxes(){
         //cv::putText(frame, out_str,cv::Point(b.x, b.y+10),cv::FONT_HERSHEY_DUPLEX,.25,color, 1);
         return boxes;
     }
+
+void ObjectDetection::setup_gpu_compute(){
+
+    // Platform
+    std::vector<cl::Platform> all_platforms;
+    cl::Platform::get(&all_platforms);
+    if (all_platforms.size()==0) {
+        throw std::runtime_error("Unable to find OpenCL platform");
+        return;
+    }
+    cl::Platform default_platform=all_platforms[0];
+    std::cerr << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
+
+    // GPU Device
+    std::vector<cl::Device> gpu_devices;
+    default_platform.getDevices(CL_DEVICE_TYPE_GPU, &gpu_devices);
+    if(gpu_devices.size()==0){
+        throw std::runtime_error("No GPU Device found");
+        return;
+    }
+    cl::Device default_device=gpu_devices[0];
+    std::cerr<< "Using device: "<<default_device.getInfo<CL_DEVICE_NAME>()<<"\n";
+
+    cl::Context context({default_device});
+
+    // Compile
+    std::ifstream kernel_file("image_resize.cl");
+    std::string src(std::istreambuf_iterator<char>(kernel_file), (std::istreambuf_iterator<char>()));
+    cl::Program::Sources sources;
+    sources.push_back({src.c_str(), src.length() + 1});
+    program = cl::Program(context, sources);
+    cl::Program program(context, sources);
+    if (program.build({default_device})) {
+        throw std::runtime_error("No GPU Device found" + program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device));
+        return;
+    }
+    
+    // Setup Buffers
+    buffer_input  = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * model_image_width * model_image_height);
+    buffer_output = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * model_image_width * model_image_height);
+
+    // Queue
+    queue= cl::CommandQueue(context, default_device);
+}
+
+void ObjectDetection::gpu_resize_image(){
+    queue.enqueueWriteBuffer(buffer_input, CL_TRUE, 0, sizeof(float) * model_image_width * model_image_height, buf);
+    queue.enqueueReadBuffer (buffer_output, CL_TRUE, 0, sizeof(float) * model_image_width * model_image_height, buf);
+
+    cl::Kernel resizeKernel(program, "resize_image");
+    resizeKernel.setArg(0, buffer_input);
+    resizeKernel.setArg(1, buffer_output);
+    queue.enqueueNDRangeKernel(resizeKernel,cl::NullRange,cl::NDRange(10),cl::NullRange);
+    queue.finish();
+}
+
 }
