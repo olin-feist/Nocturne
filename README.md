@@ -36,6 +36,6 @@ Simple usage of ultrasonic senor with GPIO for communication
 
 [Arducam 1080P Day & Night Vision](https://www.amazon.com/Arducam-Computer-Automatic-Switching-All-Day/dp/B0829HZ3Q7/)
 
-### Architecure Diagram
+### Architecture Diagram
 
 ![Image](https://i.imgur.com/Le4mXf0.png)
