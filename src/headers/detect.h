@@ -50,6 +50,8 @@ namespace nocturne{
         cl::CommandQueue queue;
         cl::Context context;
 
+        std::vector<float> floatBuffer;
+        
         std::vector<BoundingBox> get_boxes();
         
         void setup_gpu_compute();

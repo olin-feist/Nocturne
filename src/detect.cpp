@@ -66,6 +66,9 @@ ObjectDetection::ObjectDetection(const std::string& model_path){
     TfLiteTensor* outputtensor = interpreter->output_tensor(0);
     model_num_canidates = outputtensor->dims->data[1];
     model_num_classes = outputtensor->dims->data[2];
+
+    floatBuffer.resize(model_image_width*model_image_height*model_image_chnls,0.0);
+
     setup_gpu_compute();
 }
 
@@ -78,9 +81,10 @@ ObjectDetection& ObjectDetection::operator=(ObjectDetection&& other){
     model_num_classes= other.model_num_classes;
     model_num_canidates= other.model_num_canidates;
     cam1=std::move(other.cam1);
-    program=other.program;
-    queue=other.queue;
-    context=other.context;
+    program=std::move(other.program);
+    queue=std::move(other.queue);
+    context=std::move(other.context);
+    floatBuffer=std::move(other.floatBuffer);
     return *this;
 }
 
@@ -95,17 +99,15 @@ std::vector<BoundingBox> ObjectDetection::detect(){
     cam1.get_frame(&buf,size);
     cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
     cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_COLOR);
-    cl::Image2D readImage(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,cl::ImageFormat(CL_RGB, CL_SNORM_INT8),640,480,0,frame.data);
+    cv::Mat timage;
+    frame.convertTo(timage,  CV_8SC3, 1.0, 0);
+    cl::Image2D readImage(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,cl::ImageFormat(CL_RGB, CL_SNORM_INT8),640,480,0,timage.data);
     gpu_resize_image(readImage);
-    return{};
-    cv::resize(frame, frame, cv::Size(model_image_width, model_image_height), 0, 0, cv::INTER_AREA);
-    input_tensor = interpreter->typed_input_tensor<float>(0);
 
+    input_tensor = interpreter->typed_input_tensor<float>(0);
+    
     // Copy float image into input tensor
-    cv::Mat fimage;
-    frame.convertTo(fimage, CV_32FC3,1.0/255.0);
-    cv::cvtColor(fimage, fimage, cv::COLOR_BGR2RGB);
-    memcpy(input_tensor, fimage.data,sizeof(float) * model_image_width * model_image_height * model_image_chnls);
+    memcpy(input_tensor, floatBuffer.data(),sizeof(float) * model_image_width * model_image_height * model_image_chnls);
     if (interpreter->Invoke() != kTfLiteOk) {
         std::cerr<<"Error invoking"<<std::endl;
         return {};
@@ -212,12 +214,11 @@ void ObjectDetection::setup_gpu_compute(){
 }
 
 void ObjectDetection::gpu_resize_image(const cl::Image2D& img){
-    cl::Image2D writeImage(context,CL_MEM_WRITE_ONLY,cl::ImageFormat(CL_RGB, CL_SNORM_INT8),model_image_width,model_image_height,0,nullptr);
+    cl::Image2D writeImage(context,CL_MEM_WRITE_ONLY,cl::ImageFormat(CL_RGB, CL_FLOAT),model_image_width,model_image_height,0,nullptr);
     cl_int err;
     cl::Kernel resizeKernel(program, "nn_resize",&err);
     if (err != CL_SUCCESS) {
         std::cerr << "Failed to make the kernel, error code: " << err << std::endl;
-        exit(1);
     }
     resizeKernel.setArg(0, img);
     resizeKernel.setArg(1, writeImage);
@@ -243,16 +244,8 @@ void ObjectDetection::gpu_resize_image(const cl::Image2D& img){
     region[1]=model_image_height;
     region[2]=1;
 
-    char* data = (char*)malloc(model_image_width*model_image_height*model_image_chnls);
-    memset(data,20,model_image_width*model_image_height*model_image_chnls);
-    queue.enqueueReadImage(writeImage, CL_TRUE, origin, region, 0,0,(void*) data);
-    if (err != CL_SUCCESS) {
-        std::cerr << "enqueueReadImage Failed, error code: " << err << std::endl;
-    }
-    queue.finish();
-    cv::Mat rawData(model_image_width,model_image_height,CV_8SC3,(void*)data);
-    cv::imwrite("test.jpg", rawData); // A JPG FILE IS BEING SAVED
-    free(data);
+    queue.enqueueReadImage(writeImage, CL_TRUE, origin, region, 0,0,(void*) floatBuffer.data());
+    //queue.finish();
 }
 
 }

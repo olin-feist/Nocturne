@@ -18,9 +18,7 @@ __kernel void nn_resize(__read_only image2d_t read,__write_only image2d_t write,
     float2 nn_xy = (float2)(x_ / scalar_width, y_ / scalar_height);
     int2 inn_xy = convert_int2(nn_xy);
 
-    // Read the pixel value from the source image
     float4 color = read_imagef(read, sampler, inn_xy);
 
-    // Write the pixel value to the destination image
     write_imagef(write, (int2)(x_, y_), color);
 }
