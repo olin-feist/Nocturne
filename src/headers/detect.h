@@ -8,7 +8,6 @@
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
 #include "tensorflow/lite/optional_debug_tools.h"
-
 #include "capture.h"
 
 namespace nocturne{
@@ -48,14 +47,13 @@ namespace nocturne{
         u_int32_t size{0};
 
         cl::Program program;
-        cl::Buffer buffer_input;
-        cl::Buffer buffer_output;
         cl::CommandQueue queue;
+        cl::Context context;
 
         std::vector<BoundingBox> get_boxes();
         
         void setup_gpu_compute();
-        void gpu_resize_image();
+        void gpu_resize_image(const cl::Image2D&);
 
     public:
         ObjectDetection(const std::string&);

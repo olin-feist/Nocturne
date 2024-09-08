@@ -66,6 +66,7 @@ ObjectDetection::ObjectDetection(const std::string& model_path){
     TfLiteTensor* outputtensor = interpreter->output_tensor(0);
     model_num_canidates = outputtensor->dims->data[1];
     model_num_classes = outputtensor->dims->data[2];
+    setup_gpu_compute();
 }
 
 ObjectDetection& ObjectDetection::operator=(ObjectDetection&& other){
@@ -77,6 +78,9 @@ ObjectDetection& ObjectDetection::operator=(ObjectDetection&& other){
     model_num_classes= other.model_num_classes;
     model_num_canidates= other.model_num_canidates;
     cam1=std::move(other.cam1);
+    program=other.program;
+    queue=other.queue;
+    context=other.context;
     return *this;
 }
 
@@ -90,7 +94,10 @@ std::vector<BoundingBox> ObjectDetection::detect(){
 
     cam1.get_frame(&buf,size);
     cv::Mat rawData(1,size,CV_8SC1,(void*)buf);
-    cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_UNCHANGED);
+    cv::Mat frame= cv::imdecode(rawData,cv::IMREAD_COLOR);
+    cl::Image2D readImage(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,cl::ImageFormat(CL_RGB, CL_SNORM_INT8),640,480,0,frame.data);
+    gpu_resize_image(readImage);
+    return{};
     cv::resize(frame, frame, cv::Size(model_image_width, model_image_height), 0, 0, cv::INTER_AREA);
     input_tensor = interpreter->typed_input_tensor<float>(0);
 
@@ -189,37 +196,63 @@ void ObjectDetection::setup_gpu_compute(){
     cl::Device default_device=gpu_devices[0];
     std::cerr<< "Using device: "<<default_device.getInfo<CL_DEVICE_NAME>()<<"\n";
 
-    cl::Context context({default_device});
+    // Queue and context
+    context = cl::Context(default_device);
+    queue   = cl::CommandQueue(context, default_device);
 
     // Compile
-    std::ifstream kernel_file("image_resize.cl");
-    std::string src(std::istreambuf_iterator<char>(kernel_file), (std::istreambuf_iterator<char>()));
-    cl::Program::Sources sources;
-    sources.push_back({src.c_str(), src.length() + 1});
-    program = cl::Program(context, sources);
-    cl::Program program(context, sources);
-    if (program.build({default_device})) {
-        throw std::runtime_error("No GPU Device found" + program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device));
+    std::ifstream kernel_file("./image_functions.cl");
+    std::string src( std::istreambuf_iterator<char>( kernel_file.rdbuf()), std::istreambuf_iterator<char>() );
+       
+    program = cl::Program(context, src);
+    if (program.build(default_device)!=CL_SUCCESS) {
+        throw std::runtime_error("\nOpenCL build failed:\n" + program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device));
         return;
     }
-    
-    // Setup Buffers
-    buffer_input  = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(float) * model_image_width * model_image_height);
-    buffer_output = cl::Buffer(context, CL_MEM_READ_ONLY, sizeof(float) * model_image_width * model_image_height);
-
-    // Queue
-    queue= cl::CommandQueue(context, default_device);
 }
 
-void ObjectDetection::gpu_resize_image(){
-    queue.enqueueWriteBuffer(buffer_input, CL_TRUE, 0, sizeof(float) * model_image_width * model_image_height, buf);
-    queue.enqueueReadBuffer (buffer_output, CL_TRUE, 0, sizeof(float) * model_image_width * model_image_height, buf);
+void ObjectDetection::gpu_resize_image(const cl::Image2D& img){
+    cl::Image2D writeImage(context,CL_MEM_WRITE_ONLY,cl::ImageFormat(CL_RGB, CL_SNORM_INT8),model_image_width,model_image_height,0,nullptr);
+    cl_int err;
+    cl::Kernel resizeKernel(program, "nn_resize",&err);
+    if (err != CL_SUCCESS) {
+        std::cerr << "Failed to make the kernel, error code: " << err << std::endl;
+        exit(1);
+    }
+    resizeKernel.setArg(0, img);
+    resizeKernel.setArg(1, writeImage);
+    resizeKernel.setArg(2, 640);
+    resizeKernel.setArg(3, 480);
+    resizeKernel.setArg(4, model_image_width);
+    resizeKernel.setArg(5, model_image_height);
+    err = queue.enqueueNDRangeKernel(
+        resizeKernel,
+        cl::NullRange,
+        cl::NDRange(model_image_width,model_image_height),
+        cl::NullRange
+    );
+    if (err != CL_SUCCESS) {
+        std::cerr << "enqueueNDRangeKernel Failed, error code: " << err << std::endl;
+    }
+    cl::detail::size_t_array origin;
+    origin[0]=0;
+    origin[1]=0;
+    origin[2]=0;
+    cl::detail::size_t_array region;
+    region[0]=model_image_width;
+    region[1]=model_image_height;
+    region[2]=1;
 
-    cl::Kernel resizeKernel(program, "resize_image");
-    resizeKernel.setArg(0, buffer_input);
-    resizeKernel.setArg(1, buffer_output);
-    queue.enqueueNDRangeKernel(resizeKernel,cl::NullRange,cl::NDRange(10),cl::NullRange);
+    char* data = (char*)malloc(model_image_width*model_image_height*model_image_chnls);
+    memset(data,20,model_image_width*model_image_height*model_image_chnls);
+    queue.enqueueReadImage(writeImage, CL_TRUE, origin, region, 0,0,(void*) data);
+    if (err != CL_SUCCESS) {
+        std::cerr << "enqueueReadImage Failed, error code: " << err << std::endl;
+    }
     queue.finish();
+    cv::Mat rawData(model_image_width,model_image_height,CV_8SC3,(void*)data);
+    cv::imwrite("test.jpg", rawData); // A JPG FILE IS BEING SAVED
+    free(data);
 }
 
 }

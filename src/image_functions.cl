@@ -1,38 +1,26 @@
-// Nearest neighbour interpolation algo
-void nearest_neighbour_interpolation(__constant unsigned char* read,unsigned char* write,
-                           __constant unsigned int old_width, __constant unsigned int old_height,
-                           __constant unsigned int new_width,unsigned int new_height
-){
-    if((old_width == new_width) && (new_height == old_height)){
-        for(int i = 0;i<old_width;i++){
-            for(int j = 0; j< old_height;j++){
-                write[i][j]=read[i][j];
-            }
-        }
-        return;
-    }
-    float scalar_width =  new_width/old_width;
-    float scalar_height = new_height/old_height;
-    for(int i=0;i<new_width;i++){
-        for(int j=0;j<new_height;j++){
-            write[i][j] = read[round(i/scalar_width)][round(j/scalar_height)];
-        }
-    }
-    return;
-}
+__constant sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-
-// Kernel to resize a image
-__kernel void resize_image(__constant unsigned char* read,unsigned char* write,
-                           __constant unsigned int old_width, __constant unsigned int old_height,
-                           __constant unsigned int new_width,unsigned int new_height,
-                           __constant unsigned int method
+// Nearest neighbour interpolation
+__kernel void nn_resize(__read_only image2d_t read,__write_only image2d_t write,
+                           unsigned int old_width, unsigned int old_height,
+                           unsigned int new_width, unsigned int new_height
 ){
-    if(method == 0){
-        nearest_neighbour_interpolation(read,write,old_width,old_height,new_width,new_height);
-        return;
-    // TODO Other resize algorithms
-    }else{
+    const int x_ = get_global_id(0);
+    const int y_ = get_global_id(1);
+
+    if (x_ >= new_width || y_ >= new_height) {
         return;
     }
+
+    float scalar_width  = (float)new_width / old_width;
+    float scalar_height = (float)new_height / old_height;
+
+    float2 nn_xy = (float2)(x_ / scalar_width, y_ / scalar_height);
+    int2 inn_xy = convert_int2(nn_xy);
+
+    // Read the pixel value from the source image
+    float4 color = read_imagef(read, sampler, inn_xy);
+
+    // Write the pixel value to the destination image
+    write_imagef(write, (int2)(x_, y_), color);
 }
